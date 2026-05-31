@@ -22,87 +22,68 @@ selected_store = st.selectbox("Chọn STORE để tìm:", store_list)
 df_store = df[df['STORE'] == selected_store]
 
 # -------------------------
-# Session state
+# Session state cho input
 # -------------------------
 if 'art_no_input' not in st.session_state:
     st.session_state.art_no_input = ''
 if 'barcode_input' not in st.session_state:
     st.session_state.barcode_input = ''
 
-# -------------------------
-# Callback để xóa ô còn lại
-# -------------------------
-def art_no_changed():
-    st.session_state.barcode_input = ''
-
-def barcode_changed():
-    st.session_state.art_no_input = ''
-
-# -------------------------
 # Nút Reset
-# -------------------------
 if st.button("Reset"):
     st.session_state.art_no_input = ''
     st.session_state.barcode_input = ''
 
 # -------------------------
-# Input với callback
+# Input ART_NO và BARCODE
 # -------------------------
-art_no_val = st.text_input(
-    "Nhập MÃ HÀNG",
+art_no_input = st.text_area(
+    "Nhập MÃ HÀNG (có thể nhiều mã, cách nhau bằng dấu phẩy hoặc xuống dòng)",
     value=st.session_state.art_no_input,
-    key="art_no_input",
-    on_change=art_no_changed
+    key="art_no_input"
 )
 
-barcode_val = st.text_input(
-    "Nhập BARCODE",
+barcode_input = st.text_area(
+    "Nhập BARCODE (có thể nhiều mã, cách nhau bằng dấu phẩy hoặc xuống dòng)",
     value=st.session_state.barcode_input,
-    key="barcode_input",
-    on_change=barcode_changed
+    key="barcode_input"
 )
+
+# Nếu nhập ART_NO → xóa barcode; nhập barcode → xóa ART_NO
+if art_no_input.strip():
+    st.session_state.barcode_input = ''
+elif barcode_input.strip():
+    st.session_state.art_no_input = ''
+
+# -------------------------
+# Chia chuỗi thành danh sách số
+# -------------------------
+def parse_multiple_ids(text):
+    if not text:
+        return []
+    # loại bỏ khoảng trắng và xuống dòng, tách theo dấu , hoặc xuống dòng
+    items = [i.strip() for i in text.replace("\n", ",").split(",") if i.strip()]
+    return [int(i) for i in items if i.isdigit()]
+
+art_no_list = parse_multiple_ids(st.session_state.art_no_input)
+barcode_list = parse_multiple_ids(st.session_state.barcode_input)
 
 # -------------------------
 # Lookup dữ liệu
 # -------------------------
-def safe_int(val):
-    try:
-        return int(val.strip())
-    except:
-        return None
-
-art_no_lookup = safe_int(st.session_state.art_no_input)
-barcode_lookup = safe_int(st.session_state.barcode_input)
-
-product = None
-if art_no_lookup is not None:
-    product = df_store[df_store['ART_NO'] == art_no_lookup]
-elif barcode_lookup is not None:
-    product = df_store[df_store['EAN_CODE'] == barcode_lookup]
+if art_no_list:
+    result_df = df_store[df_store['ART_NO'].isin(art_no_list)]
+elif barcode_list:
+    result_df = df_store[df_store['EAN_CODE'].isin(barcode_list)]
+else:
+    result_df = pd.DataFrame()
 
 # -------------------------
-# Hiển thị kết quả
+# Hiển thị bảng
 # -------------------------
-if product is not None and not product.empty:
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("Product Info")
-        st.write(f"Mã Hàng: {product['ART_NO'].values[0]}")
-        st.write(f"Tên SP: {product['ART_DESCR'].values[0]}")
-        st.write(f"Art STT: {product['ART_STATUS'].values[0]}")
-        st.write(f"SEASON: {product['SEASON'].values[0]}")
-        st.write(f"ORDER_FLAG: {product['ORDER_FLAG'].values[0]}")
-        st.write(f"SUPPL_ART_NO: {product['SUPPL_ART_NO'].values[0]}")
-        st.write(f"CORE: {product['CORE'].values[0]}")
-    with col2:
-        st.subheader("Stock Info")
-        st.write(f"Stock: {product['ACTUAL_STOCK'].values[0]}")
-        st.write(f"Dept: {product['UPD_BUYER_UID'].values[0]}")
-        st.write(f"ON_PNG: {product['ON_PNG'].values[0]}")
-        st.write(f"POG: {product['PLANO NAME'].values[0]}")
-        st.write(f"Fixel ID: {product['Fixel ID'].values[0]}")
-        st.write(f"Vị trí: {product['Vị trí'].values[0]}")
-        st.write(f"Facing: {product['Facing'].values[0]}")
+if not result_df.empty:
+    st.subheader("Kết quả tìm kiếm")
+    st.dataframe(result_df.reset_index(drop=True))
 elif st.session_state.art_no_input or st.session_state.barcode_input:
     st.error("Không tìm thấy dữ liệu trong STORE đã chọn")
 
