@@ -5,14 +5,14 @@ st.set_page_config(page_title="POG Product Scanner", layout="wide")
 st.title("📦 POG Product Scanner (STORE + ART_NO / EAN_CODE)")
 
 # ---------- Load dữ liệu từ file Excel đã upload ----------
-df = pd.read_excel("data.xlsx", engine="openpyxl")
+df = pd.read_excel("/mnt/data/data.xlsx", engine="openpyxl")
 
 # ---------- Chọn STORE ----------
 store_list = sorted(df['STORE'].dropna().unique().tolist())
 selected_store = st.selectbox("Chọn STORE để tìm:", store_list)
 df_store = df[df['STORE'] == selected_store]
 
-# ---------- Session state chỉ giữ kết quả ----------
+# ---------- Session state chỉ giữ bảng kết quả ----------
 if "result_df" not in st.session_state:
     st.session_state["result_df"] = pd.DataFrame()
 
@@ -25,14 +25,16 @@ col1, col2 = st.columns([1,1])
 # ---------- Nút Tìm kiếm ----------
 with col1:
     if st.button("Tìm kiếm"):
-        # Nhập ART_NO → xóa barcode
+        # Nhập ART_NO → xóa barcode cũ
         if art_no_input.strip():
             barcode_input = ""
-        # Nhập barcode → xóa ART_NO
+            st.session_state["barcode_input"] = ""
+        # Nhập barcode → xóa ART_NO cũ
         elif barcode_input.strip():
             art_no_input = ""
+            st.session_state["art_no_input"] = ""
 
-        # Parse input thành list số
+        # Hàm parse input thành list số
         def parse_ids(text):
             if not text:
                 return []
@@ -53,12 +55,17 @@ with col1:
             [st.session_state["result_df"], result_df]
         ).drop_duplicates().reset_index(drop=True)
 
+        # Cập nhật lại session_state cho input
+        st.session_state["art_no_input"] = art_no_input
+        st.session_state["barcode_input"] = barcode_input
+
 # ---------- Nút Reset ----------
 with col2:
     if st.button("Reset"):
         st.session_state["result_df"] = pd.DataFrame()
-        art_no_input = ""
-        barcode_input = ""
+        st.session_state["art_no_input"] = ""
+        st.session_state["barcode_input"] = ""
+        st.success("Đã reset toàn bộ input và kết quả")
 
 # ---------- Hiển thị kết quả ----------
 if not st.session_state["result_df"].empty:
