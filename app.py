@@ -9,7 +9,7 @@ st.title("📦 POG Product Scanner (STORE + ART_NO / EAN_CODE)")
 # -------------------------
 # 1. Load Excel từ Google Drive
 # -------------------------
-file_id = "1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"  # ID file Google Drive
+file_id = "1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
 url = f"https://drive.google.com/uc?export=download&id=1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
 resp = requests.get(url)
 df = pd.read_excel(BytesIO(resp.content), engine="openpyxl")
@@ -24,14 +24,22 @@ df_store = df[df['STORE'] == selected_store]
 # -------------------------
 # 3. Nhập ART_NO hoặc EAN_CODE
 # -------------------------
-art_no_input = st.text_input("Nhập MÃ HÀNG (ART_NO):")
-barcode_input = st.text_input("Nhập BARCODE (EAN_CODE):")
+if "reset" not in st.session_state:
+    st.session_state.reset = False
+
+if st.button("Reset"):
+    st.session_state.reset = True
+
+if st.session_state.reset:
+    st.session_state.reset = False
+    st.experimental_rerun()  # reset toàn bộ app
+
+art_no_input = st.text_input("Nhập MÃ HÀNG")
+barcode_input = st.text_input("Nhập BARCODE")
 
 # -------------------------
 # 4. Convert input sang int và lookup dữ liệu
 # -------------------------
-product = None
-
 def safe_int(val):
     try:
         return int(val.strip())
@@ -41,11 +49,15 @@ def safe_int(val):
 art_no_val = safe_int(art_no_input)
 barcode_val = safe_int(barcode_input)
 
+product = None
 if art_no_val is not None:
     product = df_store[df_store['ART_NO'] == art_no_val]
 elif barcode_val is not None:
     product = df_store[df_store['EAN_CODE'] == barcode_val]
 
+# -------------------------
+# 5. Hiển thị kết quả
+# -------------------------
 if product is not None and not product.empty:
     st.subheader("Thông tin sản phẩm")
     st.write(f"Mã Hàng: {product['ART_NO'].values[0]}")
