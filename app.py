@@ -22,30 +22,28 @@ selected_store = st.selectbox("Chọn STORE để tìm:", store_list)
 df_store = df[df['STORE'] == selected_store]
 
 # -------------------------
-# Session state cho input
+# Khởi tạo session_state
 # -------------------------
 if 'art_no_input' not in st.session_state:
     st.session_state.art_no_input = ''
 if 'barcode_input' not in st.session_state:
     st.session_state.barcode_input = ''
 
-# Nút Reset xóa cả 2 ô
+# Nút Reset → xóa 2 ô input
 if st.button("Reset"):
     st.session_state.art_no_input = ''
     st.session_state.barcode_input = ''
 
 # -------------------------
-# Nhập ART_NO hoặc EAN_CODE
+# Nhập ART_NO và BARCODE
 # -------------------------
-art_no_temp = st.text_input("Nhập MÃ HÀNG", value="")
-barcode_temp = st.text_input("Nhập BARCODE", value="")
+art_no_val = st.text_input("Nhập MÃ HÀNG", value=st.session_state.art_no_input, key="art_no_input")
+barcode_val = st.text_input("Nhập BARCODE", value=st.session_state.barcode_input, key="barcode_input")
 
-# Nhập ART_NO → xóa BARCODE, cập nhật ngay giá trị mới
-if art_no_temp.strip():
-    st.session_state.art_no_input = art_no_temp.strip()
+# Nếu nhập ART_NO → xóa BARCODE, nhập BARCODE → xóa ART_NO
+if art_no_val.strip():
     st.session_state.barcode_input = ''
-elif barcode_temp.strip():
-    st.session_state.barcode_input = barcode_temp.strip()
+elif barcode_val.strip():
     st.session_state.art_no_input = ''
 
 # -------------------------
@@ -57,17 +55,17 @@ def safe_int(val):
     except:
         return None
 
-art_no_val = safe_int(st.session_state.art_no_input)
-barcode_val = safe_int(st.session_state.barcode_input)
+art_no_lookup = safe_int(st.session_state.art_no_input)
+barcode_lookup = safe_int(st.session_state.barcode_input)
 
 product = None
-if art_no_val is not None:
-    product = df_store[df_store['ART_NO'] == art_no_val]
-elif barcode_val is not None:
-    product = df_store[df_store['EAN_CODE'] == barcode_val]
+if art_no_lookup is not None:
+    product = df_store[df_store['ART_NO'] == art_no_lookup]
+elif barcode_lookup is not None:
+    product = df_store[df_store['EAN_CODE'] == barcode_lookup]
 
 # -------------------------
-# Hiển thị kết quả 2 cột
+# Hiển thị kết quả
 # -------------------------
 if product is not None and not product.empty:
     col1, col2 = st.columns(2)
