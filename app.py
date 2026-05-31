@@ -8,7 +8,7 @@ st.title("📦 POG Product Scanner (STORE + ART_NO / EAN_CODE)")
 
 # ---------- Load dữ liệu từ Google Drive ----------
 file_id = "1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
-url = f"https://drive.google.com/uc?export=download&id=1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
+url = f"https://drive.google.com/uc?export=download&id={file_id}"
 resp = requests.get(url)
 df = pd.read_excel(BytesIO(resp.content), engine="openpyxl")
 
@@ -17,7 +17,7 @@ store_list = sorted(df['STORE'].dropna().unique().tolist())
 selected_store = st.selectbox("Chọn STORE để tìm:", store_list)
 df_store = df[df['STORE'] == selected_store]
 
-# ---------- Session state khởi tạo ----------
+# ---------- Session state ----------
 if "art_no_input" not in st.session_state:
     st.session_state["art_no_input"] = ""
 if "barcode_input" not in st.session_state:
@@ -37,8 +37,11 @@ with st.form(key="search_form"):
         value=st.session_state["barcode_input"],
         key="barcode_input_area"
     )
-    submitted = st.form_submit_button("Tìm kiếm")
-    reset = st.form_submit_button("Reset")
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        submitted = st.form_submit_button("Tìm kiếm")
+    with col2:
+        reset = st.form_submit_button("Reset")
 
 # ---------- Reset input + kết quả ----------
 if reset:
@@ -46,7 +49,6 @@ if reset:
     st.session_state["barcode_input"] = ""
     st.session_state["result_df"] = pd.DataFrame()
     st.success("Đã reset toàn bộ")
-    st.stop()
 
 # ---------- Xử lý logic tìm kiếm ----------
 if submitted:
@@ -63,7 +65,7 @@ if submitted:
         if not text:
             return []
         items = [i.strip() for i in text.replace("\n", ",").split(",") if i.strip()]
-        return [int(i) for i in items if i.isdigit()]
+        return [i for i in items if i.isdigit()]
 
     art_no_list = parse_ids(art_no_input)
     barcode_list = parse_ids(barcode_input)
@@ -71,9 +73,9 @@ if submitted:
     # Lookup dữ liệu
     result_df = pd.DataFrame()
     if art_no_list:
-        result_df = df_store[df_store['ART_NO'].isin(art_no_list)]
+        result_df = df_store[df_store['ART_NO'].astype(str).isin(art_no_list)]
     elif barcode_list:
-        result_df = df_store[df_store['EAN_CODE'].isin(barcode_list)]
+        result_df = df_store[df_store['EAN_CODE'].astype(str).isin(barcode_list)]
 
     # Lưu kết quả vào session_state
     st.session_state["result_df"] = result_df
@@ -81,7 +83,10 @@ if submitted:
 # ---------- Hiển thị kết quả ----------
 if not st.session_state["result_df"].empty:
     st.subheader("Kết quả tìm kiếm")
-    st.dataframe(st.session_state["result_df"].reset_index(drop=True))
+    # Xóa phần (Tên cột) khi hiển thị
+    clean_df = st.session_state["result_df"].copy()
+    clean_df.columns = [col.split('(')[0].strip() for col in clean_df.columns]
+    st.dataframe(clean_df.reset_index(drop=True), use_container_width=True)
 
 st.markdown("---")
 st.markdown("tui làm đó CANDO ✌️")
