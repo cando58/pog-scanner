@@ -3,10 +3,11 @@ import pandas as pd
 import requests
 from io import BytesIO
 
+# ---------- Page config ----------
 st.set_page_config(page_title="POG Product Scanner", layout="wide")
 st.title("📦 POG Product Scanner (STORE + ART_NO / EAN_CODE)")
 
-# ---------- Load dữ liệu từ Google Drive ----------
+# ---------- Load data từ Google Drive ----------
 file_id = "1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
 url = f"https://drive.google.com/uc?export=download&id={file_id}"
 resp = requests.get(url)
@@ -30,12 +31,13 @@ col1, col2 = st.columns([1,1])
 # ---------- Nút tìm kiếm ----------
 with col1:
     if st.button("Tìm kiếm"):
-        # Nếu nhập ART_NO → bỏ barcode
+        # ART_NO nhập → xóa barcode, Barcode nhập → xóa ART_NO
         if art_no_input.strip():
             barcode_input = ""
         elif barcode_input.strip():
             art_no_input = ""
 
+        # Parse input thành list số
         def parse_ids(text):
             if not text:
                 return []
@@ -51,7 +53,8 @@ with col1:
         elif barcode_list:
             result_df = df_store[df_store['EAN_CODE'].astype(str).isin(barcode_list)]
 
-        st.session_state["result_df"] = result_df
+        # Append kết quả mới vào bảng cũ
+        st.session_state["result_df"] = pd.concat([st.session_state["result_df"], result_df]).drop_duplicates().reset_index(drop=True)
 
 # ---------- Nút Reset ----------
 with col2:
@@ -59,14 +62,13 @@ with col2:
         st.session_state["result_df"] = pd.DataFrame()
         art_no_input = ""
         barcode_input = ""
-        st.experimental_rerun()  # refresh page để xóa sạch input + kết quả
 
 # ---------- Hiển thị kết quả ----------
 if not st.session_state["result_df"].empty:
     st.subheader("Kết quả tìm kiếm")
     df_display = st.session_state["result_df"].copy()
     df_display.columns = [c.split('(')[0].strip() for c in df_display.columns]
-    st.dataframe(df_display.reset_index(drop=True), use_container_width=True)
+    st.dataframe(df_display, use_container_width=True)
 
 st.markdown("---")
 st.markdown("tui làm đó CANDO ✌️")
