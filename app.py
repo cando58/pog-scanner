@@ -7,7 +7,7 @@ st.set_page_config(page_title="POG Product Scanner", layout="wide")
 st.title("📦 POG Product Scanner (STORE + ART_NO / EAN_CODE)")
 
 # -------------------------
-# 1. Load Excel từ Google Drive
+# Load Excel từ Google Drive
 # -------------------------
 file_id = "1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
 url = f"https://drive.google.com/uc?export=download&id=1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
@@ -15,36 +15,41 @@ resp = requests.get(url)
 df = pd.read_excel(BytesIO(resp.content), engine="openpyxl")
 
 # -------------------------
-# 2. Chọn STORE
+# Chọn STORE
 # -------------------------
 store_list = sorted(df['STORE'].dropna().unique().tolist())
 selected_store = st.selectbox("Chọn STORE để tìm:", store_list)
 df_store = df[df['STORE'] == selected_store]
 
 # -------------------------
-# 3. Session state cho input
+# Session state riêng cho 2 input
 # -------------------------
 if 'art_no_input' not in st.session_state:
     st.session_state.art_no_input = ''
 if 'barcode_input' not in st.session_state:
     st.session_state.barcode_input = ''
 
-# Nút reset
+# Nút Reset
 if st.button("Reset"):
     st.session_state.art_no_input = ''
     st.session_state.barcode_input = ''
 
 # -------------------------
-# 4. Nhập ART_NO hoặc EAN_CODE
+# Nhập ART_NO hoặc EAN_CODE
 # -------------------------
-art_no_input = st.text_input("Nhập MÃ HÀNG", value=st.session_state.art_no_input)
-barcode_input = st.text_input("Nhập BARCODE", value=st.session_state.barcode_input)
+art_no_new = st.text_input("Nhập MÃ HÀNG", value=st.session_state.art_no_input)
+barcode_new = st.text_input("Nhập BARCODE", value=st.session_state.barcode_input)
 
-st.session_state.art_no_input = art_no_input
-st.session_state.barcode_input = barcode_input
+# Nếu nhập ART_NO → xóa barcode, ngược lại
+if art_no_new != st.session_state.art_no_input:
+    st.session_state.art_no_input = art_no_new
+    st.session_state.barcode_input = ''  # xóa barcode
+if barcode_new != st.session_state.barcode_input:
+    st.session_state.barcode_input = barcode_new
+    st.session_state.art_no_input = ''  # xóa ART_NO
 
 # -------------------------
-# 5. Convert input sang int và lookup dữ liệu
+# Lookup dữ liệu
 # -------------------------
 def safe_int(val):
     try:
@@ -52,8 +57,8 @@ def safe_int(val):
     except:
         return None
 
-art_no_val = safe_int(art_no_input)
-barcode_val = safe_int(barcode_input)
+art_no_val = safe_int(st.session_state.art_no_input)
+barcode_val = safe_int(st.session_state.barcode_input)
 
 product = None
 if art_no_val is not None:
@@ -62,7 +67,7 @@ elif barcode_val is not None:
     product = df_store[df_store['EAN_CODE'] == barcode_val]
 
 # -------------------------
-# 6. Hiển thị kết quả theo 2 cột
+# Hiển thị kết quả
 # -------------------------
 if product is not None and not product.empty:
     col1, col2 = st.columns(2)
@@ -84,11 +89,9 @@ if product is not None and not product.empty:
         st.write(f"Fixel ID: {product['Fixel ID'].values[0]}")
         st.write(f"Vị trí: {product['Vị trí'].values[0]}")
         st.write(f"Facing: {product['Facing'].values[0]}")
-elif art_no_input or barcode_input:
+elif st.session_state.art_no_input or st.session_state.barcode_input:
     st.error("Không tìm thấy dữ liệu trong STORE đã chọn")
 
-# -------------------------
-# 7. Footer
-# -------------------------
+# Footer
 st.markdown("---")
 st.markdown("tui làm đó CANDO ✌️")
