@@ -5,7 +5,7 @@ from io import BytesIO
 
 # ---------- Page config ----------
 st.set_page_config(page_title="POG Product Scanner Online", layout="wide")
-st.title("😘 POG Product Scanner Online (ByCanDo)")
+st.title("📦 POG Product Scanner Online (STORE + ART_NO / EAN_CODE)")
 
 # ---------- Load dữ liệu từ Google Drive ----------
 file_id = "1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
@@ -22,6 +22,8 @@ df_store = df[df['STORE'] == selected_store]
 for key in ["art_no_input", "barcode_input", "result_df"]:
     if key not in st.session_state:
         st.session_state[key] = "" if key != "result_df" else pd.DataFrame()
+if "last_input" not in st.session_state:
+    st.session_state["last_input"] = ""
 
 # ---------- Input ----------
 art_no_input = st.text_area(
@@ -41,19 +43,13 @@ col1, col2 = st.columns([1,1])
 # ---------- Tìm kiếm ----------
 with col1:
     if st.button("Tìm kiếm"):
-        # ART_NO → xóa barcode, BARCODE → xóa ART_NO nếu nhập theo thứ tự
-        if art_no_input.strip() and barcode_input.strip():
-            # Nếu cả 2 ô đều nhập, chỉ dùng ô đang được sửa gần nhất
-            if st.session_state["last_input"] == "art":
-                barcode_input = ""
-            else:
-                art_no_input = ""
-
-        # Lưu loại input vừa nhập
+        # Xác định input mới nhất và xóa input đối lập nếu cần
         if art_no_input.strip():
             st.session_state["last_input"] = "art"
+            barcode_input = ""
         elif barcode_input.strip():
             st.session_state["last_input"] = "barcode"
+            art_no_input = ""
 
         # Parse input thành danh sách số
         def parse_ids(text):
@@ -69,10 +65,11 @@ with col1:
         result_df = pd.DataFrame()
         if art_no_list:
             result_df = df_store[df_store['ART_NO'].isin(art_no_list)]
-            barcode_input = ""
-        elif barcode_list:
-            result_df = df_store[df_store['EAN_CODE'].isin(barcode_list)]
-            art_no_input = ""
+        if barcode_list:
+            result_df = pd.concat([
+                result_df,
+                df_store[df_store['EAN_CODE'].isin(barcode_list)]
+            ], ignore_index=True).drop_duplicates()
 
         # Lưu session_state
         st.session_state["result_df"] = result_df
@@ -97,4 +94,4 @@ if not st.session_state["result_df"].empty:
     st.dataframe(df_display.reset_index(drop=True), use_container_width=True)
 
 st.markdown("---")
-st.markdown("Tui làm đó CANDO 🫶")
+st.markdown("tui làm đó CANDO ✌️")
