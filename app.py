@@ -7,7 +7,7 @@ st.set_page_config(page_title="POG Product Scanner", layout="wide")
 st.title("📦 POG Product Scanner (STORE + ART_NO / EAN_CODE)")
 
 # -------------------------
-# Load dữ liệu Excel từ Google Drive
+# Load Excel từ Google Drive
 # -------------------------
 file_id = "1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
 url = f"https://drive.google.com/uc?export=download&id=1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
@@ -22,29 +22,45 @@ selected_store = st.selectbox("Chọn STORE để tìm:", store_list)
 df_store = df[df['STORE'] == selected_store]
 
 # -------------------------
-# Khởi tạo session_state
+# Session state
 # -------------------------
 if 'art_no_input' not in st.session_state:
     st.session_state.art_no_input = ''
 if 'barcode_input' not in st.session_state:
     st.session_state.barcode_input = ''
 
-# Nút Reset → xóa 2 ô input
+# -------------------------
+# Callback để xóa ô còn lại
+# -------------------------
+def art_no_changed():
+    st.session_state.barcode_input = ''
+
+def barcode_changed():
+    st.session_state.art_no_input = ''
+
+# -------------------------
+# Nút Reset
+# -------------------------
 if st.button("Reset"):
     st.session_state.art_no_input = ''
     st.session_state.barcode_input = ''
 
 # -------------------------
-# Nhập ART_NO và BARCODE
+# Input với callback
 # -------------------------
-art_no_val = st.text_input("Nhập MÃ HÀNG", value=st.session_state.art_no_input, key="art_no_input")
-barcode_val = st.text_input("Nhập BARCODE", value=st.session_state.barcode_input, key="barcode_input")
+art_no_val = st.text_input(
+    "Nhập MÃ HÀNG",
+    value=st.session_state.art_no_input,
+    key="art_no_input",
+    on_change=art_no_changed
+)
 
-# Nếu nhập ART_NO → xóa BARCODE, nhập BARCODE → xóa ART_NO
-if art_no_val.strip():
-    st.session_state.barcode_input = ''
-elif barcode_val.strip():
-    st.session_state.art_no_input = ''
+barcode_val = st.text_input(
+    "Nhập BARCODE",
+    value=st.session_state.barcode_input,
+    key="barcode_input",
+    on_change=barcode_changed
+)
 
 # -------------------------
 # Lookup dữ liệu
