@@ -1,10 +1,13 @@
 import streamlit as st
 import pandas as pd
+import requests
+from io import BytesIO
 
 st.set_page_config(page_title="POG Product Scanner", layout="wide")
-st.title("📦 POG Product Scanner (STORE + ART_NO / EAN_CODE)")
+st.title("📦 POG Product Scanner Online (STORE + ART_NO / EAN_CODE)")
 
-# ---------- Load dữ liệu từ Google Drive ----------
+# ---------- Load dữ liệu trực tiếp từ Google Drive ----------
+# Lấy link share public "export=download"
 file_id = "1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
 url = f"https://drive.google.com/uc?export=download&id={file_id}"
 resp = requests.get(url)
@@ -28,16 +31,16 @@ col1, col2 = st.columns([1,1])
 # ---------- Nút Tìm kiếm ----------
 with col1:
     if st.button("Tìm kiếm"):
-        # Nhập ART_NO → xóa barcode cũ
+        # Nhập ART_NO → xóa barcode
         if art_no_input.strip():
             barcode_input = ""
             st.session_state["barcode_input"] = ""
-        # Nhập barcode → xóa ART_NO cũ
+        # Nhập barcode → xóa ART_NO
         elif barcode_input.strip():
             art_no_input = ""
             st.session_state["art_no_input"] = ""
 
-        # Hàm parse input thành list số
+        # Parse input
         def parse_ids(text):
             if not text:
                 return []
@@ -58,7 +61,6 @@ with col1:
             [st.session_state["result_df"], result_df]
         ).drop_duplicates().reset_index(drop=True)
 
-        # Cập nhật lại session_state cho input
         st.session_state["art_no_input"] = art_no_input
         st.session_state["barcode_input"] = barcode_input
 
