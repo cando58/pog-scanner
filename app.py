@@ -3,11 +3,10 @@ import pandas as pd
 import requests
 from io import BytesIO
 
-# ---------- Page config ----------
 st.set_page_config(page_title="POG Product Scanner", layout="wide")
 st.title("📦 POG Product Scanner (STORE + ART_NO / EAN_CODE)")
 
-# ---------- Load data từ Google Drive ----------
+# ---------- Load dữ liệu từ Google Drive ----------
 file_id = "1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
 url = f"https://drive.google.com/uc?export=download&id={file_id}"
 resp = requests.get(url)
@@ -42,12 +41,13 @@ barcode_input = st.text_area(
 col1, col2 = st.columns([1,1])
 with col1:
     if st.button("Tìm kiếm"):
-        # Nhập ART_NO → xóa barcode
+        # Nếu nhập ART_NO → xóa barcode, nếu nhập barcode → xóa ART_NO
         if art_no_input.strip():
             st.session_state["barcode_input"] = ""
         elif barcode_input.strip():
             st.session_state["art_no_input"] = ""
 
+        # Parse input thành danh sách số
         def parse_ids(text):
             if not text:
                 return []
@@ -57,6 +57,7 @@ with col1:
         art_no_list = parse_ids(art_no_input)
         barcode_list = parse_ids(barcode_input)
 
+        # Lookup dữ liệu
         result_df = pd.DataFrame()
         if art_no_list:
             result_df = df_store[df_store['ART_NO'].isin(art_no_list)]
@@ -69,6 +70,7 @@ with col1:
 
 with col2:
     if st.button("Reset"):
+        # Xóa toàn bộ session_state input + kết quả
         st.session_state["art_no_input"] = ""
         st.session_state["barcode_input"] = ""
         st.session_state["result_df"] = pd.DataFrame()
