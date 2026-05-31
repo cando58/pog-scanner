@@ -3,6 +3,7 @@ import pandas as pd
 import requests
 from io import BytesIO
 
+# ---------- Config ----------
 st.set_page_config(page_title="POG Product Scanner", layout="wide")
 st.title("📦 POG Product Scanner (STORE + ART_NO / EAN_CODE)")
 
@@ -17,7 +18,11 @@ store_list = sorted(df['STORE'].dropna().unique().tolist())
 selected_store = st.selectbox("Chọn STORE để tìm:", store_list)
 df_store = df[df['STORE'] == selected_store]
 
-# ---------- Session state khởi tạo ----------
+# ---------- Khởi tạo session_state ----------
+if "art_no_input" not in st.session_state:
+    st.session_state["art_no_input"] = ""
+if "barcode_input" not in st.session_state:
+    st.session_state["barcode_input"] = ""
 if "result_df" not in st.session_state:
     st.session_state["result_df"] = pd.DataFrame()
 
@@ -25,28 +30,37 @@ if "result_df" not in st.session_state:
 with st.form(key="search_form"):
     art_no_input = st.text_area(
         "Nhập MÃ HÀNG (có thể nhiều mã, dấu , hoặc xuống dòng)",
+        value=st.session_state["art_no_input"],
         height=100
     )
     barcode_input = st.text_area(
         "Nhập BARCODE (có thể nhiều mã, dấu , hoặc xuống dòng)",
+        value=st.session_state["barcode_input"],
         height=100
     )
+
     submitted = st.form_submit_button("Tìm kiếm")
     reset = st.form_submit_button("Reset")
 
-# ---------- Reset toàn bộ trang ----------
+# ---------- Xử lý Reset ----------
 if reset:
-    st.experimental_rerun()  # refresh page, xóa toàn bộ input và kết quả
+    st.session_state["art_no_input"] = ""
+    st.session_state["barcode_input"] = ""
+    st.session_state["result_df"] = pd.DataFrame()
+    st.success("Đã reset toàn bộ")
+    st.stop()  # dừng hiển thị form cũ
 
-# ---------- Xử lý logic tìm kiếm ----------
+# ---------- Xử lý tìm kiếm ----------
 if submitted:
     # Nếu nhập ART_NO → bỏ barcode, nếu nhập barcode → bỏ ART_NO
     if art_no_input.strip():
         barcode_input = ""
+        st.session_state["barcode_input"] = ""
     elif barcode_input.strip():
         art_no_input = ""
+        st.session_state["art_no_input"] = ""
 
-    # Hàm parse input thành danh sách số
+    # Parse input thành list số
     def parse_ids(text):
         if not text:
             return []
@@ -63,8 +77,9 @@ if submitted:
     elif barcode_list:
         result_df = df_store[df_store['EAN_CODE'].isin(barcode_list)]
 
-    # Lưu kết quả vào session_state
     st.session_state["result_df"] = result_df
+    st.session_state["art_no_input"] = art_no_input
+    st.session_state["barcode_input"] = barcode_input
 
 # ---------- Hiển thị kết quả ----------
 if not st.session_state["result_df"].empty:
