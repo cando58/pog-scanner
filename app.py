@@ -18,7 +18,7 @@ store_list = sorted(df['STORE'].dropna().unique().tolist())
 selected_store = st.selectbox("Chọn STORE để tìm:", store_list)
 df_store = df[df['STORE'] == selected_store]
 
-# ---------- Session state ----------
+# ---------- Session state chỉ giữ bảng kết quả ----------
 if "result_df" not in st.session_state:
     st.session_state["result_df"] = pd.DataFrame()
 
@@ -28,12 +28,13 @@ barcode_input = st.text_area("Nhập BARCODE (EAN_CODE)", height=100)
 
 col1, col2 = st.columns([1,1])
 
-# ---------- Nút tìm kiếm ----------
+# ---------- Tìm kiếm ----------
 with col1:
     if st.button("Tìm kiếm"):
-        # ART_NO nhập → xóa barcode, Barcode nhập → xóa ART_NO
+        # ART_NO nhập → xóa barcode
         if art_no_input.strip():
             barcode_input = ""
+        # BARCODE nhập → xóa ART_NO
         elif barcode_input.strip():
             art_no_input = ""
 
@@ -53,10 +54,10 @@ with col1:
         elif barcode_list:
             result_df = df_store[df_store['EAN_CODE'].astype(str).isin(barcode_list)]
 
-        # Append kết quả mới vào bảng cũ
+        # Append vào bảng cũ
         st.session_state["result_df"] = pd.concat([st.session_state["result_df"], result_df]).drop_duplicates().reset_index(drop=True)
 
-# ---------- Nút Reset ----------
+# ---------- Reset ----------
 with col2:
     if st.button("Reset"):
         st.session_state["result_df"] = pd.DataFrame()
