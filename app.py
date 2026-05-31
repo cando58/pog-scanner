@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 from PIL import Image
-from pyzbar.pyzbar import decode
+import numpy as np
+import cv2
 import requests
 from io import BytesIO
 
@@ -13,7 +14,6 @@ st.title("📦 POG Product Scanner (STORE + Camera)")
 # -------------------------
 file_id = "1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"  # ID file Excel Google Drive
 url = f"https://drive.google.com/uc?export=download&id=1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
-
 resp = requests.get(url)
 df = pd.read_excel(BytesIO(resp.content), engine="openpyxl")
 
@@ -22,7 +22,6 @@ df = pd.read_excel(BytesIO(resp.content), engine="openpyxl")
 # -------------------------
 store_list = sorted(df['STORE'].dropna().unique().tolist())
 selected_store = st.selectbox("Chọn STORE để quét:", store_list)
-
 df_store = df[df['STORE'] == selected_store]
 
 # -------------------------
@@ -34,12 +33,20 @@ uploaded_file = st.file_uploader(
 )
 
 barcode = None
+
+def decode_barcode_opencv(img: Image):
+    """Decode barcode/QR từ ảnh sử dụng OpenCV"""
+    img_cv = np.array(img.convert('RGB'))
+    detector = cv2.QRCodeDetector()
+    data, bbox, _ = detector.detectAndDecode(img_cv)
+    return data  # Trả về string hoặc rỗng
+
 if uploaded_file:
     img = Image.open(uploaded_file)
     st.image(img, use_container_width=True)
-    decoded = decode(img)
+    decoded = decode_barcode_opencv(img)
     if decoded:
-        barcode = decoded[0].data.decode("utf-8")
+        barcode = decoded
         st.success(f"Barcode phát hiện: {barcode}")
     else:
         st.warning("Không quét được barcode")
