@@ -1,0 +1,66 @@
+import streamlit as st
+import pandas as pd
+import requests
+from io import BytesIO
+
+st.set_page_config(page_title="POG Product Scanner", layout="wide")
+st.title("📦 POG Product Scanner (STORE + ART_NO / EAN_CODE)")
+
+# -------------------------
+# 1. Load Excel từ Google Drive
+# -------------------------
+file_id = "1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"  # ID file Google Drive
+url = f"https://drive.google.com/uc?export=download&id=1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
+resp = requests.get(url)
+df = pd.read_excel(BytesIO(resp.content), engine="openpyxl")
+
+# -------------------------
+# 2. Chọn STORE
+# -------------------------
+store_list = sorted(df['STORE'].dropna().unique().tolist())
+selected_store = st.selectbox("Chọn STORE để tìm:", store_list)
+df_store = df[df['STORE'] == selected_store]
+
+# -------------------------
+# 3. Nhập ART_NO hoặc EAN_CODE
+# -------------------------
+art_no_input = st.text_input("Nhập MÃ HÀNG (ART_NO):")
+barcode_input = st.text_input("Nhập BARCODE (EAN_CODE):")
+
+# -------------------------
+# 4. Convert input sang int và lookup dữ liệu
+# -------------------------
+product = None
+
+def safe_int(val):
+    try:
+        return int(val.strip())
+    except:
+        return None
+
+art_no_val = safe_int(art_no_input)
+barcode_val = safe_int(barcode_input)
+
+if art_no_val is not None:
+    product = df_store[df_store['ART_NO'] == art_no_val]
+elif barcode_val is not None:
+    product = df_store[df_store['EAN_CODE'] == barcode_val]
+
+if product is not None and not product.empty:
+    st.subheader("Thông tin sản phẩm")
+    st.write(f"Mã Hàng: {product['ART_NO'].values[0]}")
+    st.write(f"Tên SP: {product['ART_DESCR'].values[0]}")
+    st.write(f"Art STT: {product['ART_STATUS'].values[0]}")
+    st.write(f"SEASON: {product['SEASON'].values[0]}")
+    st.write(f"ORDER_FLAG: {product['ORDER_FLAG'].values[0]}")
+    st.write(f"SUPPL_ART_NO: {product['SUPPL_ART_NO'].values[0]}")
+    st.write(f"CORE: {product['CORE'].values[0]}")
+    st.write(f"Stock: {product['ACTUAL_STOCK'].values[0]}")
+    st.write(f"Dept: {product['UPD_BUYER_UID'].values[0]}")
+    st.write(f"ON_PNG: {product['ON_PNG'].values[0]}")
+    st.write(f"POG: {product['PLANO NAME'].values[0]}")
+    st.write(f"Fixel ID: {product['Fixel ID'].values[0]}")
+    st.write(f"Vị trí: {product['Vị trí'].values[0]}")
+    st.write(f"Facing: {product['Facing'].values[0]}")
+elif art_no_input or barcode_input:
+    st.error("Không tìm thấy dữ liệu trong STORE đã chọn")
