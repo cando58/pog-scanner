@@ -5,7 +5,7 @@ from io import BytesIO
 
 # ---------- Page config ----------
 st.set_page_config(page_title="POG Product Scanner Online", layout="wide")
-st.title("📦 POG Product Scanner Online (STORE + ART_NO / EAN_CODE)")
+st.title("😍 POG Product Scanner Online (by CANDO)")
 
 # ---------- Load dữ liệu từ Google Drive ----------
 file_id = "1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
@@ -94,4 +94,4 @@ if not st.session_state["result_df"].empty:
     st.dataframe(df_display.reset_index(drop=True), use_container_width=True)
 
 st.markdown("---")
-st.markdown("tui làm đó CANDO ✌️")
+st.markdown("Tui làm đó CANDO 🫶")
