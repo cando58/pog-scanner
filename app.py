@@ -17,13 +17,13 @@ store_list = sorted(df['STORE'].dropna().unique().tolist())
 selected_store = st.selectbox("Chọn STORE để tìm:", store_list)
 df_store = df[df['STORE'] == selected_store]
 
-# ---------- Session state ----------
-if "art_no_input" not in st.session_state:
-    st.session_state["art_no_input"] = ""
-if "barcode_input" not in st.session_state:
-    st.session_state["barcode_input"] = ""
-if "result_df" not in st.session_state:
-    st.session_state["result_df"] = pd.DataFrame()
+# ---------- Session state khởi tạo ----------
+for key in ["art_no_input", "barcode_input", "result_df"]:
+    if key not in st.session_state:
+        if key == "result_df":
+            st.session_state[key] = pd.DataFrame()
+        else:
+            st.session_state[key] = ""
 
 # ---------- Nhập liệu ----------
 art_no_input = st.text_area(
@@ -31,7 +31,6 @@ art_no_input = st.text_area(
     value=st.session_state["art_no_input"],
     height=100
 )
-
 barcode_input = st.text_area(
     "Nhập BARCODE (có thể nhiều mã, dấu , hoặc xuống dòng)",
     value=st.session_state["barcode_input"],
@@ -41,10 +40,12 @@ barcode_input = st.text_area(
 col1, col2 = st.columns([1,1])
 with col1:
     if st.button("Tìm kiếm"):
-        # Nếu nhập ART_NO → xóa barcode, nếu nhập barcode → xóa ART_NO
+        # Nếu nhập ART_NO → xóa barcode, nhập barcode → xóa ART_NO
         if art_no_input.strip():
+            barcode_input = ""
             st.session_state["barcode_input"] = ""
         elif barcode_input.strip():
+            art_no_input = ""
             st.session_state["art_no_input"] = ""
 
         # Parse input thành danh sách số
@@ -64,13 +65,14 @@ with col1:
         elif barcode_list:
             result_df = df_store[df_store['EAN_CODE'].isin(barcode_list)]
 
+        # Cập nhật session_state
         st.session_state["result_df"] = result_df
         st.session_state["art_no_input"] = art_no_input
         st.session_state["barcode_input"] = barcode_input
 
 with col2:
     if st.button("Reset"):
-        # Xóa toàn bộ session_state input + kết quả
+        # Xóa toàn bộ input và kết quả
         st.session_state["art_no_input"] = ""
         st.session_state["barcode_input"] = ""
         st.session_state["result_df"] = pd.DataFrame()
