@@ -3,11 +3,10 @@ import pandas as pd
 import requests
 from io import BytesIO
 
-# ---------- Page config ----------
 st.set_page_config(page_title="POG Product Scanner", layout="wide")
 st.title("📦 POG Product Scanner (STORE + ART_NO / EAN_CODE)")
 
-# ---------- Load data từ Google Drive ----------
+# ---------- Load dữ liệu từ Google Drive ----------
 file_id = "1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
 url = f"https://drive.google.com/uc?export=download&id={file_id}"
 resp = requests.get(url)
@@ -18,7 +17,7 @@ store_list = sorted(df['STORE'].dropna().unique().tolist())
 selected_store = st.selectbox("Chọn STORE để tìm:", store_list)
 df_store = df[df['STORE'] == selected_store]
 
-# ---------- Session state chỉ giữ bảng kết quả ----------
+# ---------- Session state chỉ giữ kết quả ----------
 if "result_df" not in st.session_state:
     st.session_state["result_df"] = pd.DataFrame()
 
@@ -28,22 +27,21 @@ barcode_input = st.text_area("Nhập BARCODE (EAN_CODE)", height=100)
 
 col1, col2 = st.columns([1,1])
 
-# ---------- Tìm kiếm ----------
+# ---------- Nút Tìm kiếm ----------
 with col1:
     if st.button("Tìm kiếm"):
-        # ART_NO nhập → xóa barcode
+        # Nhập ART_NO → xóa barcode
         if art_no_input.strip():
             barcode_input = ""
-        # BARCODE nhập → xóa ART_NO
+        # Nhập barcode → xóa ART_NO
         elif barcode_input.strip():
             art_no_input = ""
 
-        # Parse input thành list số
         def parse_ids(text):
             if not text:
                 return []
             items = [i.strip() for i in text.replace("\n", ",").split(",") if i.strip()]
-            return [i for i in items if i.isdigit()]
+            return [int(i) for i in items if i.isdigit()]
 
         art_list = parse_ids(art_no_input)
         barcode_list = parse_ids(barcode_input)
@@ -54,10 +52,9 @@ with col1:
         elif barcode_list:
             result_df = df_store[df_store['EAN_CODE'].astype(str).isin(barcode_list)]
 
-        # Append vào bảng cũ
-        st.session_state["result_df"] = pd.concat([st.session_state["result_df"], result_df]).drop_duplicates().reset_index(drop=True)
+        st.session_state["result_df"] = result_df
 
-# ---------- Reset ----------
+# ---------- Nút Reset ----------
 with col2:
     if st.button("Reset"):
         st.session_state["result_df"] = pd.DataFrame()
