@@ -22,23 +22,29 @@ selected_store = st.selectbox("Chọn STORE để tìm:", store_list)
 df_store = df[df['STORE'] == selected_store]
 
 # -------------------------
-# 3. Nhập ART_NO hoặc EAN_CODE
+# 3. Session state cho input
 # -------------------------
-if "reset" not in st.session_state:
-    st.session_state.reset = False
+if 'art_no_input' not in st.session_state:
+    st.session_state.art_no_input = ''
+if 'barcode_input' not in st.session_state:
+    st.session_state.barcode_input = ''
 
+# Nút reset
 if st.button("Reset"):
-    st.session_state.reset = True
-
-if st.session_state.reset:
-    st.session_state.reset = False
-    st.experimental_rerun()  # reset toàn bộ app
-
-art_no_input = st.text_input("Nhập MÃ HÀNG")
-barcode_input = st.text_input("Nhập BARCODE")
+    st.session_state.art_no_input = ''
+    st.session_state.barcode_input = ''
 
 # -------------------------
-# 4. Convert input sang int và lookup dữ liệu
+# 4. Nhập ART_NO hoặc EAN_CODE
+# -------------------------
+art_no_input = st.text_input("Nhập MÃ HÀNG", value=st.session_state.art_no_input)
+barcode_input = st.text_input("Nhập BARCODE", value=st.session_state.barcode_input)
+
+st.session_state.art_no_input = art_no_input
+st.session_state.barcode_input = barcode_input
+
+# -------------------------
+# 5. Convert input sang int và lookup dữ liệu
 # -------------------------
 def safe_int(val):
     try:
@@ -56,23 +62,33 @@ elif barcode_val is not None:
     product = df_store[df_store['EAN_CODE'] == barcode_val]
 
 # -------------------------
-# 5. Hiển thị kết quả
+# 6. Hiển thị kết quả theo 2 cột
 # -------------------------
 if product is not None and not product.empty:
-    st.subheader("Thông tin sản phẩm")
-    st.write(f"Mã Hàng: {product['ART_NO'].values[0]}")
-    st.write(f"Tên SP: {product['ART_DESCR'].values[0]}")
-    st.write(f"Art STT: {product['ART_STATUS'].values[0]}")
-    st.write(f"SEASON: {product['SEASON'].values[0]}")
-    st.write(f"ORDER_FLAG: {product['ORDER_FLAG'].values[0]}")
-    st.write(f"SUPPL_ART_NO: {product['SUPPL_ART_NO'].values[0]}")
-    st.write(f"CORE: {product['CORE'].values[0]}")
-    st.write(f"Stock: {product['ACTUAL_STOCK'].values[0]}")
-    st.write(f"Dept: {product['UPD_BUYER_UID'].values[0]}")
-    st.write(f"ON_PNG: {product['ON_PNG'].values[0]}")
-    st.write(f"POG: {product['PLANO NAME'].values[0]}")
-    st.write(f"Fixel ID: {product['Fixel ID'].values[0]}")
-    st.write(f"Vị trí: {product['Vị trí'].values[0]}")
-    st.write(f"Facing: {product['Facing'].values[0]}")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("Product Info")
+        st.write(f"Mã Hàng: {product['ART_NO'].values[0]}")
+        st.write(f"Tên SP: {product['ART_DESCR'].values[0]}")
+        st.write(f"Art STT: {product['ART_STATUS'].values[0]}")
+        st.write(f"SEASON: {product['SEASON'].values[0]}")
+        st.write(f"ORDER_FLAG: {product['ORDER_FLAG'].values[0]}")
+        st.write(f"SUPPL_ART_NO: {product['SUPPL_ART_NO'].values[0]}")
+        st.write(f"CORE: {product['CORE'].values[0]}")
+    with col2:
+        st.subheader("Stock Info")
+        st.write(f"Stock: {product['ACTUAL_STOCK'].values[0]}")
+        st.write(f"Dept: {product['UPD_BUYER_UID'].values[0]}")
+        st.write(f"ON_PNG: {product['ON_PNG'].values[0]}")
+        st.write(f"POG: {product['PLANO NAME'].values[0]}")
+        st.write(f"Fixel ID: {product['Fixel ID'].values[0]}")
+        st.write(f"Vị trí: {product['Vị trí'].values[0]}")
+        st.write(f"Facing: {product['Facing'].values[0]}")
 elif art_no_input or barcode_input:
     st.error("Không tìm thấy dữ liệu trong STORE đã chọn")
+
+# -------------------------
+# 7. Footer
+# -------------------------
+st.markdown("---")
+st.markdown("tui làm đó CANDO ✌️")
