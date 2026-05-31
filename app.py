@@ -4,8 +4,11 @@ import pandas as pd
 st.set_page_config(page_title="POG Product Scanner", layout="wide")
 st.title("📦 POG Product Scanner (STORE + ART_NO / EAN_CODE)")
 
-# ---------- Load dữ liệu từ file Excel đã upload ----------
-df = pd.read_excel("/mnt/data/data.xlsx", engine="openpyxl")
+# ---------- Load dữ liệu từ Google Drive ----------
+file_id = "1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
+url = f"https://drive.google.com/uc?export=download&id={file_id}"
+resp = requests.get(url)
+df = pd.read_excel(BytesIO(resp.content), engine="openpyxl")
 
 # ---------- Chọn STORE ----------
 store_list = sorted(df['STORE'].dropna().unique().tolist())
