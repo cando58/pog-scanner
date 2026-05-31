@@ -7,7 +7,7 @@ st.set_page_config(page_title="POG Product Scanner", layout="wide")
 st.title("📦 POG Product Scanner (STORE + ART_NO / EAN_CODE)")
 
 # -------------------------
-# Load Excel từ Google Drive
+# Load dữ liệu Excel
 # -------------------------
 file_id = "1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
 url = f"https://drive.google.com/uc?export=download&id=1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
@@ -22,7 +22,7 @@ selected_store = st.selectbox("Chọn STORE để tìm:", store_list)
 df_store = df[df['STORE'] == selected_store]
 
 # -------------------------
-# Session state riêng cho 2 input
+# Session state cho input
 # -------------------------
 if 'art_no_input' not in st.session_state:
     st.session_state.art_no_input = ''
@@ -37,15 +37,15 @@ if st.button("Reset"):
 # -------------------------
 # Nhập ART_NO hoặc EAN_CODE
 # -------------------------
-art_no_new = st.text_input("Nhập MÃ HÀNG", value=st.session_state.art_no_input)
-barcode_new = st.text_input("Nhập BARCODE", value=st.session_state.barcode_input)
+art_no_new = st.text_input("Nhập MÃ HÀNG", value="")
+barcode_new = st.text_input("Nhập BARCODE", value="")
 
-# Nếu nhập ART_NO → xóa barcode, ngược lại
-if art_no_new != st.session_state.art_no_input:
-    st.session_state.art_no_input = art_no_new
+# Nếu nhập ART_NO → cập nhật session và xóa barcode
+if art_no_new.strip():
+    st.session_state.art_no_input = art_no_new.strip()
     st.session_state.barcode_input = ''  # xóa barcode
-if barcode_new != st.session_state.barcode_input:
-    st.session_state.barcode_input = barcode_new
+elif barcode_new.strip():
+    st.session_state.barcode_input = barcode_new.strip()
     st.session_state.art_no_input = ''  # xóa ART_NO
 
 # -------------------------
@@ -67,7 +67,7 @@ elif barcode_val is not None:
     product = df_store[df_store['EAN_CODE'] == barcode_val]
 
 # -------------------------
-# Hiển thị kết quả
+# Hiển thị kết quả 2 cột
 # -------------------------
 if product is not None and not product.empty:
     col1, col2 = st.columns(2)
