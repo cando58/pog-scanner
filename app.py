@@ -29,7 +29,7 @@ if 'art_no_input' not in st.session_state:
 if 'barcode_input' not in st.session_state:
     st.session_state.barcode_input = ''
 
-# Nút Reset: xóa tất cả input
+# Nút Reset xóa cả 2 ô
 if st.button("Reset"):
     st.session_state.art_no_input = ''
     st.session_state.barcode_input = ''
@@ -37,15 +37,15 @@ if st.button("Reset"):
 # -------------------------
 # Nhập ART_NO hoặc EAN_CODE
 # -------------------------
-art_no_new = st.text_input("Nhập MÃ HÀNG", value=st.session_state.art_no_input)
-barcode_new = st.text_input("Nhập BARCODE", value=st.session_state.barcode_input)
+art_no_temp = st.text_input("Nhập MÃ HÀNG", value="")
+barcode_temp = st.text_input("Nhập BARCODE", value="")
 
-# Cập nhật session state: nhập ART_NO → xóa barcode; nhập barcode → xóa ART_NO
-if art_no_new.strip() and art_no_new.strip() != st.session_state.art_no_input:
-    st.session_state.art_no_input = art_no_new.strip()
+# Nhập ART_NO → xóa BARCODE, cập nhật ngay giá trị mới
+if art_no_temp.strip():
+    st.session_state.art_no_input = art_no_temp.strip()
     st.session_state.barcode_input = ''
-elif barcode_new.strip() and barcode_new.strip() != st.session_state.barcode_input:
-    st.session_state.barcode_input = barcode_new.strip()
+elif barcode_temp.strip():
+    st.session_state.barcode_input = barcode_temp.strip()
     st.session_state.art_no_input = ''
 
 # -------------------------
