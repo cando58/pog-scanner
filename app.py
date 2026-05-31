@@ -6,30 +6,34 @@ import requests
 from io import BytesIO
 
 st.set_page_config(page_title="POG Product Scanner", layout="wide")
-st.title("📦 POG Product Scanner (Select STORE + Camera)")
+st.title("📦 POG Product Scanner (STORE + Camera)")
 
-# --- 1. Load Excel từ Google Drive
-file_id = "1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
+# -------------------------
+# 1. Load Excel từ Google Drive
+# -------------------------
+file_id = "1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"  # ID file Excel Google Drive
 url = f"https://drive.google.com/uc?export=download&id=1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
 
 resp = requests.get(url)
 df = pd.read_excel(BytesIO(resp.content), engine="openpyxl")
 
-# --- 2. Chọn STORE
+# -------------------------
+# 2. Chọn STORE
+# -------------------------
 store_list = sorted(df['STORE'].dropna().unique().tolist())
 selected_store = st.selectbox("Chọn STORE để quét:", store_list)
 
-# Lọc dữ liệu theo STORE
 df_store = df[df['STORE'] == selected_store]
 
-# --- 3. Upload hình barcode (camera)
+# -------------------------
+# 3. Upload hình barcode (camera)
+# -------------------------
 uploaded_file = st.file_uploader(
-    "Chụp barcode hoặc chọn hình từ thư viện",
+    "Chụp barcode bằng camera hoặc chọn hình từ thư viện",
     type=["png","jpg","jpeg"]
 )
 
 barcode = None
-
 if uploaded_file:
     img = Image.open(uploaded_file)
     st.image(img, use_container_width=True)
@@ -40,7 +44,9 @@ if uploaded_file:
     else:
         st.warning("Không quét được barcode")
 
-# --- 4. Lookup dữ liệu theo EAN_CODE + STORE
+# -------------------------
+# 4. Lookup dữ liệu theo STORE + EAN_CODE
+# -------------------------
 if barcode:
     try:
         barcode_int = int(barcode)
