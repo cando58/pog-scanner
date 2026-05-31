@@ -18,13 +18,10 @@ store_list = sorted(df['STORE'].dropna().unique().tolist())
 selected_store = st.selectbox("Chọn STORE để tìm:", store_list)
 df_store = df[df['STORE'] == selected_store]
 
-# ---------- Session state ----------
-if "art_no_input" not in st.session_state:
-    st.session_state["art_no_input"] = ""
-if "barcode_input" not in st.session_state:
-    st.session_state["barcode_input"] = ""
-if "result_df" not in st.session_state:
-    st.session_state["result_df"] = pd.DataFrame()
+# ---------- Session state khởi tạo ----------
+for key in ["art_no_input", "barcode_input", "result_df"]:
+    if key not in st.session_state:
+        st.session_state[key] = "" if key != "result_df" else pd.DataFrame()
 
 # ---------- Input ----------
 art_no_input = st.text_area(
@@ -40,51 +37,63 @@ barcode_input = st.text_area(
 )
 
 col1, col2 = st.columns([1,1])
+
+# ---------- Tìm kiếm ----------
 with col1:
     if st.button("Tìm kiếm"):
-        art_text = art_no_input.strip()
-        barcode_text = barcode_input.strip()
+        # ART_NO → xóa barcode, BARCODE → xóa ART_NO nếu nhập theo thứ tự
+        if art_no_input.strip() and barcode_input.strip():
+            # Nếu cả 2 ô đều nhập, chỉ dùng ô đang được sửa gần nhất
+            if st.session_state["last_input"] == "art":
+                barcode_input = ""
+            else:
+                art_no_input = ""
 
-        # Nếu ART_NO được nhập → xóa barcode; nếu barcode → xóa ART_NO
-        if art_text:
-            barcode_text = ""
-        elif barcode_text:
-            art_text = ""
+        # Lưu loại input vừa nhập
+        if art_no_input.strip():
+            st.session_state["last_input"] = "art"
+        elif barcode_input.strip():
+            st.session_state["last_input"] = "barcode"
 
+        # Parse input thành danh sách số
         def parse_ids(text):
             if not text:
                 return []
             items = [i.strip() for i in text.replace("\n", ",").split(",") if i.strip()]
             return [int(i) for i in items if i.isdigit()]
 
-        art_no_list = parse_ids(art_text)
-        barcode_list = parse_ids(barcode_text)
+        art_no_list = parse_ids(art_no_input)
+        barcode_list = parse_ids(barcode_input)
 
         # Lookup dữ liệu
-        new_result = pd.DataFrame()
+        result_df = pd.DataFrame()
         if art_no_list:
-            new_result = df_store[df_store['ART_NO'].isin(art_no_list)]
+            result_df = df_store[df_store['ART_NO'].isin(art_no_list)]
+            barcode_input = ""
         elif barcode_list:
-            new_result = df_store[df_store['EAN_CODE'].isin(barcode_list)]
+            result_df = df_store[df_store['EAN_CODE'].isin(barcode_list)]
+            art_no_input = ""
 
-        # Cộng dồn kết quả liên tiếp
-        st.session_state["result_df"] = pd.concat([st.session_state["result_df"], new_result]).drop_duplicates().reset_index(drop=True)
-        st.session_state["art_no_input"] = art_text
-        st.session_state["barcode_input"] = barcode_text
+        # Lưu session_state
+        st.session_state["result_df"] = result_df
+        st.session_state["art_no_input"] = art_no_input
+        st.session_state["barcode_input"] = barcode_input
 
+# ---------- Reset ----------
 with col2:
     if st.button("Reset"):
-        # Xóa toàn bộ session_state input và kết quả
         st.session_state["art_no_input"] = ""
         st.session_state["barcode_input"] = ""
         st.session_state["result_df"] = pd.DataFrame()
-        st.success("Đã reset toàn bộ input và kết quả")  # thông báo
+        st.session_state["last_input"] = ""
+        st.success("Đã reset toàn bộ input và kết quả")
 
 # ---------- Hiển thị kết quả ----------
 if not st.session_state["result_df"].empty:
     st.subheader("Kết quả tìm kiếm")
     df_display = st.session_state["result_df"].copy()
-    df_display.columns = [c.split('(')[0].strip() for c in df_display.columns]  # bỏ dấu ()
+    # Loại bỏ tên cột trong dấu ()
+    df_display.columns = [c.split('(')[0].strip() for c in df_display.columns]
     st.dataframe(df_display.reset_index(drop=True), use_container_width=True)
 
 st.markdown("---")
