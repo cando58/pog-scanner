@@ -4,7 +4,7 @@ import requests
 from io import BytesIO
 
 # ---------- Page config ----------
-st.set_page_config(page_title="😍 POG Product Scanner Online (by CANDO)", layout="wide")
+st.set_page_config(page_title="POG Product Scanner Online (by CANDO)", layout="wide")
 st.title("😍 POG Product Scanner Online (by CANDO)")
 
 # ---------- Load dữ liệu từ Google Drive ----------
@@ -24,9 +24,9 @@ selected_store = st.selectbox("Chọn STORE để tìm:", store_list)
 df_store = df[df['STORE'] == selected_store]
 
 # ---------- Session state ----------
-for key in ["art_no_input", "barcode_input", "result_df", "last_input"]:
+for key in ["art_no_input", "barcode_input", "result_df"]:
     if key not in st.session_state:
-        st.session_state[key] = "" if key not in ["result_df"] else pd.DataFrame()
+        st.session_state[key] = "" if key != "result_df" else pd.DataFrame()
 
 # ---------- Input ----------
 art_no_input = st.text_area(
@@ -48,7 +48,7 @@ with col1:
         art_text = art_no_input.strip()
         barcode_text = barcode_input.strip()
 
-        # Nếu ART_NO nhập → xóa barcode, nếu barcode → xóa ART_NO
+        # Nếu nhập ART_NO → xóa barcode, nếu barcode → xóa ART_NO
         if art_text:
             barcode_text = ""
         elif barcode_text:
@@ -57,7 +57,7 @@ with col1:
         st.session_state["art_no_input"] = art_text
         st.session_state["barcode_input"] = barcode_text
 
-        # Hàm parse input
+        # Parse input thành danh sách số
         def parse_ids(text):
             if not text:
                 return []
@@ -85,16 +85,17 @@ with col1:
 # ---------- Reset ----------
 with col2:
     if st.button("Reset"):
+        # Xóa toàn bộ input + bảng kết quả
         st.session_state["art_no_input"] = ""
         st.session_state["barcode_input"] = ""
         st.session_state["result_df"] = pd.DataFrame()
-        st.session_state["last_input"] = ""
         st.success("Đã reset toàn bộ input và kết quả")  # **Không dùng experimental_rerun**
 
 # ---------- Hiển thị kết quả ----------
 if not st.session_state["result_df"].empty:
     st.subheader("Kết quả tìm kiếm")
     df_display = st.session_state["result_df"].copy()
+    # Loại bỏ dấu () trong tên cột
     df_display.columns = [c.split('(')[0].strip() for c in df_display.columns]
     st.dataframe(df_display.reset_index(drop=True), use_container_width=True)
 
