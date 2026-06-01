@@ -7,14 +7,28 @@ from io import BytesIO
 st.set_page_config(page_title="😍 POG Product Scanner Online (by CANDO)", layout="wide")
 st.title("😍 POG Product Scanner Online (by CANDO)")
 
-# ---------- Load dữ liệu từ Google Drive (cache để load nhanh) ----------
+# ---------- Load dữ liệu từ Google Drive với progress bar ----------
 @st.cache_data(show_spinner=True)
-def load_data_from_drive(file_id):
-    # Dùng export?format=xlsx để tải file trực tiếp
+def load_data_from_drive(file_id: str):
     url = f"https://drive.google.com/uc?export=download&id={file_id}"
-    resp = requests.get(url)
-    resp.raise_for_status()
-    return pd.read_excel(BytesIO(resp.content), engine="openpyxl")
+    # Stream request để hiển thị tiến độ
+    with st.spinner("Đang tải dữ liệu từ Google Drive..."):
+        resp = requests.get(url, stream=True)
+        total_length = resp.headers.get('content-length')
+        if total_length is None:
+            return pd.read_excel(BytesIO(resp.content), engine="openpyxl")
+        else:
+            total_length = int(total_length)
+            data = BytesIO()
+            downloaded = 0
+            progress_bar = st.progress(0)
+            for chunk in resp.iter_content(chunk_size=1024*1024):
+                if chunk:
+                    data.write(chunk)
+                    downloaded += len(chunk)
+                    progress_bar.progress(min(int(downloaded / total_length * 100), 100))
+            data.seek(0)
+            return pd.read_excel(data, engine="openpyxl")
 
 file_id = "1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
 df = load_data_from_drive(file_id)
@@ -32,12 +46,12 @@ for key in ["art_no_input", "barcode_input", "result_df"]:
 
 # ---------- Input ----------
 art_no_input = st.text_area(
-    "Nhập MÃ HÀNG (ART_NO, nhiều mã cách nhau , hoặc xuống dòng)",
+    "Nhập MÃ HÀNG (có thể nhiều mã, dấu , hoặc xuống dòng)",
     value=st.session_state["art_no_input"],
     height=100
 )
 barcode_input = st.text_area(
-    "Nhập BARCODE (EAN_CODE, nhiều mã cách nhau , hoặc xuống dòng)",
+    "Nhập BARCODE (có thể nhiều mã, dấu , hoặc xuống dòng)",
     value=st.session_state["barcode_input"],
     height=100
 )
@@ -47,10 +61,10 @@ col1, col2 = st.columns([1,1])
 # ---------- Tìm kiếm ----------
 with col1:
     if st.button("Tìm kiếm"):
+        # Nếu nhập ART_NO → xóa barcode, nhập BARCODE → xóa ART_NO
         art_text = art_no_input.strip()
         barcode_text = barcode_input.strip()
 
-        # Nhập ART_NO → xóa barcode, nhập BARCODE → xóa ART_NO
         if art_text:
             barcode_text = ""
         elif barcode_text:
@@ -64,33 +78,29 @@ with col1:
             if not text:
                 return []
             items = [i.strip() for i in text.replace("\n", ",").split(",") if i.strip()]
-            return [i for i in items if i.isdigit()]
+            return [int(i) for i in items if i.isdigit()]
 
         art_no_list = parse_ids(art_text)
         barcode_list = parse_ids(barcode_text)
 
         # Lookup dữ liệu
-        new_result = pd.DataFrame()
+        result_df = pd.DataFrame()
         if art_no_list:
-            new_result = df_store[df_store['ART_NO'].isin(art_no_list)]
-        if barcode_list:
-            new_result = pd.concat([
-                new_result,
-                df_store[df_store['EAN_CODE'].isin(barcode_list)]
-            ], ignore_index=True).drop_duplicates()
+            result_df = df_store[df_store['ART_NO'].isin(art_no_list)]
+        elif barcode_list:
+            result_df = df_store[df_store['EAN_CODE'].isin(barcode_list)]
 
-        # Append kết quả vào session_state
-        st.session_state["result_df"] = pd.concat([
-            st.session_state["result_df"], new_result
-        ]).drop_duplicates().reset_index(drop=True)
+        # Lưu kết quả vào session_state
+        st.session_state["result_df"] = result_df
 
 # ---------- Reset ----------
 with col2:
     if st.button("Reset"):
+        # Xóa toàn bộ session_state input + kết quả
         st.session_state["art_no_input"] = ""
         st.session_state["barcode_input"] = ""
         st.session_state["result_df"] = pd.DataFrame()
-        st.success("Đã reset toàn bộ input và kết quả")  # không dùng experimental_rerun
+        st.success("Đã reset toàn bộ input và kết quả")  # Không cần experimental_rerun
 
 # ---------- Hiển thị kết quả ----------
 if not st.session_state["result_df"].empty:
