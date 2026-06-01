@@ -1,30 +1,21 @@
 import streamlit as st
 import pandas as pd
-import requests
-from io import BytesIO
+import gdown
 
 st.set_page_config(page_title="😍 POG Product Scanner Online (by CANDO)", layout="wide")
 st.title("😍 POG Product Scanner Online (by CANDO)")
 
 # ---------- Load dữ liệu trực tuyến từ Google Drive với cache ----------
 @st.cache_data(show_spinner=True)
-def load_data_from_drive(file_id: str):
-    url = f"https://drive.google.com/uc?export=download&id={file_id}"
-    resp = requests.get(url)
-    resp.raise_for_status()
-    # Kiểm tra file có phải Excel không
-    try:
-        df = pd.read_excel(BytesIO(resp.content), engine="openpyxl")
-        return df
-    except:
-        st.error("❌ Lỗi tải file từ Google Drive, hãy kiểm tra link file XLSX.")
-        return pd.DataFrame()
+def load_data(file_id):
+    url = f"https://drive.google.com/uc?id={file_id}"
+    output = "/tmp/data.xlsx"
+    gdown.download(url, output, quiet=False)
+    df = pd.read_excel(output, engine="openpyxl")
+    return df
 
 file_id = "1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
-df = load_data_from_drive(file_id)
-if df.empty:
-    st.stop()
-
+df = load_data(file_id)
 st.success("📥 Dữ liệu đã tải xong và cache thành công!")
 
 # ---------- Chọn STORE ----------
