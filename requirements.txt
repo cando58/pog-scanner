@@ -2,3 +2,7 @@ streamlit
 pandas
 openpyxl
 gdown
+pandas
+openpyxl
+requests
+pydrive2
