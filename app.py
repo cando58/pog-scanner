@@ -7,7 +7,7 @@ from io import BytesIO
 st.set_page_config(page_title="😍 POG Product Scanner Online (by CANDO)", layout="wide")
 st.title("😍 POG Product Scanner Online (by CANDO)")
 
-# ---------- Load dữ liệu từ Google Drive ----------
+# ---------- Load dữ liệu từ Google Drive với cache ----------
 @st.cache_data(show_spinner=True)
 def load_data_from_drive(file_id: str):
     url = f"https://drive.google.com/uc?export=download&id={file_id}"
@@ -25,9 +25,9 @@ selected_store = st.selectbox("Chọn STORE để tìm:", store_list)
 df_store = df[df['STORE'] == selected_store]
 
 # ---------- Session state ----------
-for key in ["art_no_input", "barcode_input", "result_df"]:
+for key in ["art_no_input", "barcode_input", "result_df", "reset_counter"]:
     if key not in st.session_state:
-        st.session_state[key] = "" if key != "result_df" else pd.DataFrame()
+        st.session_state[key] = pd.DataFrame() if key == "result_df" else 0 if key=="reset_counter" else ""
 
 # ---------- Input ----------
 art_no_input = st.text_area(
@@ -74,12 +74,18 @@ with col1:
         st.session_state["art_no_input"] = art_no_input
         st.session_state["barcode_input"] = barcode_input
 
+# ---------- Reset 2 lần ----------
 with col2:
     if st.button("Reset"):
-        st.session_state["art_no_input"] = ""
-        st.session_state["barcode_input"] = ""
-        st.session_state["result_df"] = pd.DataFrame()
-        st.experimental_rerun()  # refresh page để input trống + kết quả
+        st.session_state["reset_counter"] += 1
+        if st.session_state["reset_counter"] >= 2:
+            st.session_state["art_no_input"] = ""
+            st.session_state["barcode_input"] = ""
+            st.session_state["result_df"] = pd.DataFrame()
+            st.session_state["reset_counter"] = 0
+            st.success("🔄 Đã reset toàn bộ input và kết quả")
+        else:
+            st.warning("⚠ Nhấn lần 2 để xóa toàn bộ input và kết quả")
 
 # ---------- Hiển thị kết quả ----------
 if not st.session_state["result_df"].empty:
