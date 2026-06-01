@@ -5,7 +5,7 @@ import gdown
 st.set_page_config(page_title="😍 POG Product Scanner Online (by CANDO)", layout="wide")
 st.title("😍 POG Product Scanner Online (by CANDO)")
 
-# ---------- Load dữ liệu lớn từ Google Drive với cache ----------
+# ---------- Load XLSX lớn từ Google Drive với cache ----------
 @st.cache_data(show_spinner=True)
 def load_data(file_id):
     url = f"https://drive.google.com/uc?id={file_id}"
@@ -24,26 +24,17 @@ selected_store = st.selectbox("Chọn STORE để tìm:", store_list)
 df_store = df[df['STORE'] == selected_store]
 
 # ---------- Session state ----------
-for key in ["art_no_input", "barcode_input", "result_df", "reset_clicks"]:
+for key in ["art_no_input","barcode_input","result_df","reset_clicks"]:
     if key not in st.session_state:
-        if key == "result_df":
-            st.session_state[key] = pd.DataFrame()
-        elif key == "reset_clicks":
-            st.session_state[key] = 0
-        else:
-            st.session_state[key] = ""
+        if key=="result_df": st.session_state[key]=pd.DataFrame()
+        elif key=="reset_clicks": st.session_state[key]=0
+        else: st.session_state[key]=""
 
 # ---------- Inputs ----------
-art_no_input = st.text_area(
-    "Nhập MÃ HÀNG (ART_NO, nhiều mã cách nhau , hoặc xuống dòng)",
-    value=st.session_state["art_no_input"], height=100
-)
-barcode_input = st.text_area(
-    "Nhập BARCODE (EAN_CODE, nhiều mã cách nhau , hoặc xuống dòng)",
-    value=st.session_state["barcode_input"], height=100
-)
+art_no_input = st.text_area("Nhập MÃ HÀNG", value=st.session_state["art_no_input"], height=100)
+barcode_input = st.text_area("Nhập BARCODE", value=st.session_state["barcode_input"], height=100)
 
-col1, col2 = st.columns([1,1])
+col1,col2 = st.columns([1,1])
 
 # ---------- Tìm kiếm ----------
 with col1:
@@ -51,7 +42,7 @@ with col1:
         art_text = art_no_input.strip()
         barcode_text = barcode_input.strip()
 
-        # Nhập ART_NO → xóa barcode, nhập barcode → xóa ART_NO
+        # ART_NO nhập → xóa barcode; Barcode nhập → xóa ART_NO
         if art_text:
             st.session_state["barcode_input"] = ""
         elif barcode_text:
@@ -60,19 +51,17 @@ with col1:
         st.session_state["art_no_input"] = art_text
         st.session_state["barcode_input"] = barcode_text
 
-        # Parse input thành list
+        # Parse input thành list số
         def parse_ids(text):
-            if not text:
-                return []
-            items = [i.strip() for i in text.replace("\n", ",").split(",") if i.strip()]
+            if not text: return []
+            items = [i.strip() for i in text.replace("\n",",").split(",") if i.strip()]
             return [i for i in items if i.isdigit()]
 
         art_list = parse_ids(art_text)
         barcode_list = parse_ids(barcode_text)
 
         new_result = pd.DataFrame()
-        if art_list:
-            new_result = df_store[df_store['ART_NO'].astype(str).isin(art_list)]
+        if art_list: new_result = df_store[df_store['ART_NO'].astype(str).isin(art_list)]
         if barcode_list:
             new_result = pd.concat([
                 new_result,
@@ -88,11 +77,11 @@ with col1:
 with col2:
     if st.button("Reset (bấm 2 lần để xóa tất cả)"):
         st.session_state["reset_clicks"] += 1
-        if st.session_state["reset_clicks"] >= 2:
-            st.session_state["art_no_input"] = ""
-            st.session_state["barcode_input"] = ""
-            st.session_state["result_df"] = pd.DataFrame()
-            st.session_state["reset_clicks"] = 0
+        if st.session_state["reset_clicks"]>=2:
+            st.session_state["art_no_input"]=""
+            st.session_state["barcode_input"]=""
+            st.session_state["result_df"]=pd.DataFrame()
+            st.session_state["reset_clicks"]=0
             st.success("🔄 Đã reset toàn bộ input và kết quả")
         else:
             st.warning("⚠ Nhấn lần 2 để xóa toàn bộ input và kết quả")
