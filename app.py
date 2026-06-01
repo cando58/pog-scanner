@@ -3,38 +3,21 @@ import pandas as pd
 import requests
 from io import BytesIO
 
+# ---------- Page config ----------
 st.set_page_config(page_title="😍 POG Product Scanner Online (by CANDO)", layout="wide")
 st.title("😍 POG Product Scanner Online (by CANDO)")
 
-# ---------- Load dữ liệu từ Google Drive với progress + cache ----------
+# ---------- Load dữ liệu từ Google Drive ----------
 @st.cache_data(show_spinner=True)
 def load_data_from_drive(file_id: str):
     url = f"https://drive.google.com/uc?export=download&id={file_id}"
-    resp = requests.get(url, stream=True)
-    total_length = resp.headers.get('content-length')
-    if total_length is None:
-        # Nếu không xác định được dung lượng
-        df = pd.read_excel(BytesIO(resp.content), engine="openpyxl")
-        return df
-    else:
-        total_length = int(total_length)
-        chunk_size = 1024 * 1024  # 1MB
-        data = BytesIO()
-        downloaded = 0
-        progress_bar = st.progress(0)
-        for chunk in resp.iter_content(chunk_size=chunk_size):
-            if chunk:
-                data.write(chunk)
-                downloaded += len(chunk)
-                progress_bar.progress(min(int(downloaded / total_length * 100), 100))
-        data.seek(0)
-        df = pd.read_excel(data, engine="openpyxl")
-        progress_bar.progress(100)
-        return df
+    resp = requests.get(url)
+    resp.raise_for_status()
+    df = pd.read_excel(BytesIO(resp.content), engine="openpyxl")
+    return df
 
 file_id = "1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"  # ID file trên Drive
 df = load_data_from_drive(file_id)
-st.success("📥 Dữ liệu đã tải xong và cache thành công!")
 
 # ---------- Chọn STORE ----------
 store_list = sorted(df['STORE'].dropna().unique().tolist())
@@ -96,7 +79,7 @@ with col2:
         st.session_state["art_no_input"] = ""
         st.session_state["barcode_input"] = ""
         st.session_state["result_df"] = pd.DataFrame()
-        st.success("Đã reset toàn bộ input và kết quả")  # Không dùng st.experimental_rerun để tránh lỗi
+        st.experimental_rerun()  # refresh page để input trống + kết quả
 
 # ---------- Hiển thị kết quả ----------
 if not st.session_state["result_df"].empty:
