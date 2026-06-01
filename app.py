@@ -3,19 +3,20 @@ import pandas as pd
 import requests
 from io import BytesIO
 
+# ---------- Page config ----------
 st.set_page_config(page_title="😍 POG Product Scanner Online (by CANDO)", layout="wide")
 st.title("😍 POG Product Scanner Online (by CANDO)")
 
-# ---------- Load dữ liệu trực tiếp từ Google Drive ----------
+# ---------- Load dữ liệu từ Google Drive và cache ----------
 @st.cache_data(show_spinner=True)
-def load_data_from_drive(file_id: str):
+def load_data(file_id):
     url = f"https://drive.google.com/uc?export=download&id={file_id}"
     resp = requests.get(url)
     resp.raise_for_status()
     return pd.read_excel(BytesIO(resp.content), engine="openpyxl")
 
 file_id = "1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
-df = load_data_from_drive(file_id)
+df = load_data(file_id)  # cache để load nhanh lần sau
 
 # ---------- Chọn STORE ----------
 store_list = sorted(df['STORE'].dropna().unique().tolist())
@@ -41,7 +42,7 @@ with col1:
         art_text = art_no_input.strip()
         barcode_text = barcode_input.strip()
 
-        # ART_NO → xóa barcode; BARCODE → xóa ART_NO
+        # ART_NO nhập → xóa barcode; BARCODE nhập → xóa ART_NO
         if art_text:
             barcode_text = ""
         elif barcode_text:
@@ -50,12 +51,12 @@ with col1:
         st.session_state["art_no_input"] = art_text
         st.session_state["barcode_input"] = barcode_text
 
-        # Parse input
+        # Parse input thành list số
         def parse_ids(text):
             if not text:
                 return []
             items = [i.strip() for i in text.replace("\n", ",").split(",") if i.strip()]
-            return [int(i) for i in items if i.isdigit()]
+            return [i for i in items if i.isdigit()]
 
         art_no_list = parse_ids(art_text)
         barcode_list = parse_ids(barcode_text)
