@@ -1,18 +1,31 @@
 import streamlit as st
 import pandas as pd
+import requests
 from io import BytesIO
 
 st.set_page_config(page_title="😍 POG Product Scanner Online (by CANDO)", layout="wide")
 st.title("😍 POG Product Scanner Online (by CANDO)")
 
-# ---------- Load dữ liệu từ file XLSX bạn đã upload ----------
-@st.cache_data
-def load_data(file_path):
-    df = pd.read_excel(file_path, engine="openpyxl")
-    return df
+# ---------- Load dữ liệu trực tuyến từ Google Drive với cache ----------
+@st.cache_data(show_spinner=True)
+def load_data_from_drive(file_id: str):
+    url = f"https://drive.google.com/uc?export=download&id={file_id}"
+    resp = requests.get(url)
+    resp.raise_for_status()
+    # Kiểm tra file có phải Excel không
+    try:
+        df = pd.read_excel(BytesIO(resp.content), engine="openpyxl")
+        return df
+    except:
+        st.error("❌ Lỗi tải file từ Google Drive, hãy kiểm tra link file XLSX.")
+        return pd.DataFrame()
 
-# Dùng file bạn upload
-df = load_data("/mnt/data/data.xlsx")
+file_id = "1yw8xkayu14zXy4syuO7Imrdz7FsD7o_L"
+df = load_data_from_drive(file_id)
+if df.empty:
+    st.stop()
+
+st.success("📥 Dữ liệu đã tải xong và cache thành công!")
 
 # ---------- Chọn STORE ----------
 store_list = sorted(df['STORE'].dropna().unique())
@@ -22,34 +35,30 @@ df_store = df[df['STORE'] == selected_store]
 # ---------- Session state ----------
 for key in ["art_no_input","barcode_input","result_df","reset_clicks"]:
     if key not in st.session_state:
-        if key=="result_df": st.session_state[key]=pd.DataFrame()
-        elif key=="reset_clicks": st.session_state[key]=0
-        else: st.session_state[key]=""
+        st.session_state[key] = pd.DataFrame() if key=="result_df" else 0 if key=="reset_clicks" else ""
+
+# ---------- Inputs ----------
+art_no_input = st.text_area("Nhập MÃ HÀNG (ART_NO)", value=st.session_state["art_no_input"], height=100)
+barcode_input = st.text_area("Nhập BARCODE (EAN_CODE)", value=st.session_state["barcode_input"], height=100)
 
 col1, col2 = st.columns([1,1])
 
-# ---------- Form ART_NO ----------
+# ---------- Tìm kiếm ART_NO ----------
 with col1:
-    art_no_input = st.text_area("Nhập MÃ HÀNG (ART_NO)", value=st.session_state["art_no_input"], height=100)
     if st.button("Tìm ART_NO"):
         st.session_state["barcode_input"] = ""
         st.session_state["art_no_input"] = art_no_input.strip()
-        
         art_list = [i.strip() for i in art_no_input.replace("\n",",").split(",") if i.strip().isdigit()]
         new_result = df_store[df_store['ART_NO'].astype(str).isin(art_list)]
-        
         st.session_state["result_df"] = pd.concat([st.session_state["result_df"], new_result]).drop_duplicates().reset_index(drop=True)
 
-# ---------- Form BARCODE ----------
+# ---------- Tìm kiếm BARCODE ----------
 with col2:
-    barcode_input = st.text_area("Nhập BARCODE (EAN_CODE)", value=st.session_state["barcode_input"], height=100)
     if st.button("Tìm BARCODE"):
         st.session_state["art_no_input"] = ""
         st.session_state["barcode_input"] = barcode_input.strip()
-        
         barcode_list = [i.strip() for i in barcode_input.replace("\n",",").split(",") if i.strip().isdigit()]
         new_result = df_store[df_store['EAN_CODE'].astype(str).isin(barcode_list)]
-        
         st.session_state["result_df"] = pd.concat([st.session_state["result_df"], new_result]).drop_duplicates().reset_index(drop=True)
 
 # ---------- Reset 2 lần ----------
